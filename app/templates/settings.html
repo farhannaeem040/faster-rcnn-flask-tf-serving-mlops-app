@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{# ============================================================
+settings.html — Model Management Console
+Inherits from base.html.
+Responsibilities:
+- ZIP archive upload form to hot-swap the TF Serving model
+- Loading/progress feedback during upload
+- Table listing all locally registered model versions
+Context variables expected from the route:
+- versions: list of model version directory names on the host volume
+============================================================ #}
+
+{% block title %}NeuralVision AI - Model Manager{% endblock %}
+{% block page_heading %}Model Management Console{% endblock %}
+{% block page_subtitle %}Upgrade and hot-swap the backing TensorFlow Object Detection schema securely.{% endblock %}
+
+{% block content %}
+
+<!-- ===== Model Upload / Deploy Card ===== -->
+<section class="card mb-1-5rem">
+  <h2>Deploy Core Upgrade</h2>
+  <!-- Instructions describing expected archive structure -->
+  <p class="detail-text mb-1rem">
+    Provide a compressed <strong>.zip</strong> archive containing a valid <code>saved_model.pb</code> and the associated
+    <code>variables/</code> directory. Once uploaded, the integration layer will extract and roll over traffic to the
+    new revision seamlessly.
+  </p>
+
+  <!-- Upload form: POSTs the ZIP to the settings route; showLoading() fires on submit -->
+  <form action="{{ url_for('main.settings') }}" method="POST" enctype="multipart/form-data" class="upload-form"
+    onsubmit="showLoading()">
+
+    <!-- Styled file input wrapper — clicking anywhere in this area opens the file picker -->
+    <label for="model_zip" class="upload-wrapper" id="upload-label">
+      <div class="upload-icon text-color-primary" id="upload-icon">📦</div>
+      <div class="upload-text" id="zip-upload-text">Select Compiled Framework (.zip)</div>
+      <!-- Hard limit notice: Flask/Nginx must also be configured to match -->
+      <div class="upload-subtext">Max upload limits: 2GB payload barrier</div>
+      <!-- Native file input restricted to .zip archives only -->
+      <input type="file" name="model_zip" id="model_zip" accept=".zip" required>
+    </label>
+
+    <!-- Displays the attached archive filename once a file is chosen -->
+    <p id="zip-file-name-display" class="file-name-display text-success"></p>
+
+    <!-- Centred submit button using LJMU blue for admin-level actions -->
+    <div class="action-center-container mt-1-5rem">
+      <button type="submit" class="btn btn-auto-width bg-ljmu-blue" id="submit-btn">
+        <!-- LJMU Blue specifically for Admin actions -->
+        <span id="btn-text">Inject Upgrade</span>
+      </button>
+    </div>
+
+    <!-- Loading feedback: revealed via JS on valid form submission -->
+    <div id="loading-container" class="loading-state hidden mt-1rem flex-col-center">
+      <!-- Spinner indicates async processing is in progress -->
+      <div id="loading-spinner" class="spinner hidden mb-0-5rem"></div>
+      <!-- Animated progress bar — CSS keyframe driven -->
+      <div class="progress-bar mt-1rem w-100-max-400">
+        <div class="progress-bar-fill"></div>
+      </div>
+      <!-- User-facing message advising not to navigate away during upload -->
+      <p class="mt-1rem text-secondary loading-msg">Transferring binary layer over volume interface. Do not exit...</p>
+    </div>
+  </form>
+</section>
+<!-- ===== End Model Upload / Deploy Card ===== -->
+
+<!-- ===== Host Volume Image Registry Table ===== -->
+<!-- Lists all model version directories discovered on the Docker volume -->
+<section class="card">
+  <h2>Host Volume Image Registry</h2>
+  <p class="detail-text mb-1rem">Locally stored inference definitions currently tracked on the host-node block.</p>
+
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Pipeline Routing ID</th>
+          <th>Execution Flags</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Iterate over each discovered model version directory -->
+        {% for ver in versions %}
+        <tr>
+          <!-- Display the model version with a monospace Engine label -->
+          <td class="table-cell-mono">Engine v{{ ver }}</td>
+          <td>
+            {% if loop.first %}
+            <!-- The first (highest) version is always the live production head -->
+            <span class="badge-label badge-prod">PROD - ACTIVE HEAD</span>
+            {% else %}
+            <!-- All older versions are marked as standby replicas -->
+            <span class="badge-label badge-standby">STANDBY REPLICA</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <!-- Fallback row shown when no model directories exist on the volume -->
+        <tr>
+          <td colspan="2" class="empty-state">No model directories discovered. TensorFlow Serving might be
+            misconfigured!</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<!-- ===== End Host Volume Image Registry Table ===== -->
+
+<!-- ===== Page Scripts ===== -->
+<!-- All model upload UI logic lives in the external settings.js file -->
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+<!-- ===== End Page Scripts ===== -->
+
+{% endblock %}

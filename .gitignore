@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+app/logs/*.log
+app/metrics/*.json
+app/originals/*
+app/processed/*
+!app/originals/.gitkeep
+!app/processed/.gitkeep
+!app/logs/.gitkeep
+!app/metrics/metrics.json
+
+# Model weights are too large for GitHub; see README "Setting Up the AI Model"
+model/object_detection/1/*
+!model/object_detection/1/.gitkeep

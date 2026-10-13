@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{# ============================================================
+logs.html — Server Application Logs Page
+Inherits from base.html.
+Responsibilities:
+- Displays the tail of the application.log file in a
+terminal-style card
+- Auto-scrolls to the bottom on load so the latest
+entries are immediately visible
+- Provides a manual Refresh button to re-fetch live logs
+Context variables expected from the route:
+- log_content: pre-formatted string of log file contents
+============================================================ #}
+
+{% block title %}NeuralVision AI - Server Logs{% endblock %}
+{% block page_heading %}Server Application Logs{% endblock %}
+{% block page_subtitle %}Live tail of the internal Python backend execution feed for diagnostic troubleshooting.{%
+endblock %}
+
+{% block content %}
+
+<!-- ===== Log Output Card ===== -->
+<section class="card mb-1-5rem">
+  <!-- Header row: title on the left, refresh button on the right -->
+  <div class="logs-header">
+    <h2 class="m-0 pb-0 border-none">Output Stream (application.log)</h2>
+    <!-- Refresh button: reloads the page to pull the latest log entries -->
+    <a href="{{ url_for('main.view_logs') }}" class="btn btn-auto-width logs-refresh-btn">Refresh Logs</a>
+  </div>
+
+  <!-- Terminal-style scrollable container for raw log output -->
+  <!-- The 'logs-container' id is targeted by the auto-scroll script below -->
+  <div class="terminal-card" id="logs-container">
+    <!-- Renders log content as preformatted text to preserve whitespace/indentation -->
+    <pre>{{ log_content }}</pre>
+  </div>
+</section>
+<!-- ===== End Log Output Card ===== -->
+
+<!-- ===== Page Scripts ===== -->
+<!-- Terminal auto-scroll logic lives in the external logs.js file -->
+<script src="{{ url_for('static', filename='js/logs.js') }}"></script>
+<!-- ===== End Page Scripts ===== -->
+
+{% endblock %}

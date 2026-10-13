@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{# ============================================================
+gallery.html — Inference Gallery Page
+Inherits from base.html.
+Responsibilities:
+- Displays a responsive grid of all previously processed
+(annotated) images stored in the processed output folder
+- Each thumbnail links to the full-resolution file in a
+new tab for close inspection
+- Shows the filename without the 'processed_' prefix
+- Renders an empty-state prompt when no images exist yet
+Context variables expected from the route:
+- images: list of filenames (strings) from the processed
+output directory
+============================================================ #}
+
+{% block title %}NeuralVision AI - Gallery{% endblock %}
+{% block page_heading %}Inference Gallery{% endblock %}
+{% block page_subtitle %}Explore historically processed images with overlayed object detection bounding boxes.{%
+endblock %}
+
+{% block content %}
+
+<!-- ===== Gallery Card ===== -->
+<section class="card">
+
+  <!-- Card header: title on the left, total image count badge on the right -->
+  <div
+    style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1.5rem;">
+    <h2 style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">Processed Models</h2>
+    <!-- Badge showing the total number of stored inference outputs -->
+    <span class="badge-label" style="background: var(--success-bg); color: var(--success);">{{ images|length }}
+      Total</span>
+  </div>
+
+  {% if images %}
+  <!-- ===== Image Grid ===== -->
+  <!-- Responsive CSS grid; number of columns defined by the `.gallery-grid` class -->
+  <div class="gallery-grid">
+    {% for img in images %}
+    <div class="gallery-item">
+      <!-- Wraps the image directly to the full-resolution file so users can inspect it closely -->
+      <!-- Opens in a new tab to avoid navigating away from the gallery -->
+      <a href="{{ url_for('main.processed_file', filename=img) }}" target="_blank" rel="noopener noreferrer">
+        <!-- lazy loading defers off-screen images to improve initial page performance -->
+        <img src="{{ url_for('main.processed_file', filename=img) }}" alt="Processed dataset output" loading="lazy">
+      </a>
+      <!-- Metadata strip below each thumbnail: strips the 'processed_' prefix for cleaner display -->
+      <div class="gallery-meta">
+        <span class="file-name">{{ img | replace('processed_', '') }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <!-- ===== End Image Grid ===== -->
+
+  {% else %}
+  <!-- ===== Empty State ===== -->
+  <!-- Shown when no processed images have been saved to the output directory yet -->
+  <div class="empty-state">
+    <p style="margin-bottom: 1.5rem;">No processed images found yet. Head over to the Home page to run your first
+      inference payload!</p>
+    <!-- CTA to redirect user to the upload page -->
+    <a href="{{ url_for('main.index') }}" class="btn btn-auto-width">Upload Image</a>
+  </div>
+  <!-- ===== End Empty State ===== -->
+  {% endif %}
+
+</section>
+<!-- ===== End Gallery Card ===== -->
+
+{% endblock %}

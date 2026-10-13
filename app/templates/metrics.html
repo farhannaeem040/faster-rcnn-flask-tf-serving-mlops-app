@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{# ============================================================
+metrics.html — Platform Analytics Dashboard
+Inherits from base.html.
+Responsibilities:
+- Six KPI stat tiles (requests, latency, detections)
+- Four Chart.js charts: latency trend, detections bar,
+success doughnut, diagnostic status panel
+- Raw engineering log table from metrics history
+Context variables expected from the route:
+- metrics: dict with total_requests, successful_requests,
+failed_requests, average_latency_ms,
+last_latency_ms, total_detections,
+last_request_at, last_error, history (list)
+============================================================ #}
+
+{% block title %}Faster R-CNN - Metrics Dashboard{% endblock %}
+{% block page_heading %}Platform Analytics Dashboard{% endblock %}
+{% block page_subtitle %}Real-time insights plotted into system performance, throughput, and deep learning telemetry.{%
+endblock %}
+
+{% block content %}
+
+<!-- ===== Key Performance Indicator (KPI) Stat Tiles ===== -->
+<!-- Six-column stats grid giving an instant summary of throughput and latency -->
+<section class="stats-grid">
+  <div class="stat">
+    <span>Total Requests</span>
+    <strong>{{ metrics.total_requests }}</strong>
+  </div>
+  <div class="stat">
+    <span>Successful</span>
+    <strong class="text-success">{{ metrics.successful_requests }}</strong>
+  </div>
+  <div class="stat">
+    <span>Failed</span>
+    <strong class="text-danger">{{ metrics.failed_requests }}</strong>
+  </div>
+  <div class="stat">
+    <span>Avg Latency</span>
+    <!-- Round to 1 decimal place; fall back to 0 if no requests made -->
+    <strong>{{ metrics.average_latency_ms|round(1) if metrics.average_latency_ms else 0 }}<span
+        class="text-unit">ms</span></strong>
+  </div>
+  <div class="stat">
+    <span>Last Latency</span>
+    <strong>{{ metrics.last_latency_ms }}<span class="text-unit">ms</span></strong>
+  </div>
+  <div class="stat">
+    <span>Total Detections</span>
+    <strong>{{ metrics.total_detections }}</strong>
+  </div>
+</section>
+<!-- ===== End KPI Stat Tiles ===== -->
+
+<!-- ===== Live Analytics Charts Card ===== -->
+<section class="card mt-2rem">
+  <h2>Live Analytics Dashboards</h2>
+
+  <!-- Top row: Latency trend line + Detections per inference bar chart -->
+  <div class="grid-two mt-2rem mb-2rem">
+    <!-- Latency Line Chart -->
+    <div class="chart-container-panel">
+      <h3 class="chart-title">Inference Latency Trend (ms)</h3>
+      <div class="chart-box-250">
+        <!-- Canvas target for Chart.js line chart (ctxLatency) -->
+        <canvas id="latencyChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Detections Bar Chart -->
+    <div class="chart-container-panel">
+      <h3 class="chart-title">Density: Targets per Inference</h3>
+      <div class="chart-box-250">
+        <!-- Canvas target for Chart.js bar chart (ctxDetections) -->
+        <canvas id="detectionsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom row: Success doughnut + Diagnostic status text panel -->
+  <div class="grid-two">
+    <!-- Success vs Failure Doughnut Chart -->
+    <div class="chart-container-panel flex-col-center">
+      <h3 class="chart-title chart-title-w100">Success vs Failure Distribution</h3>
+      <div class="chart-box-250 flex-center-inner">
+        <!-- Canvas target for Chart.js doughnut chart (ctxSuccess) -->
+        <canvas id="successChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Diagnostic status text panel — no chart, displays last request metadata -->
+    <div class="chart-container-panel">
+      <h3 class="chart-title">Gateway &amp; TF Serving Core Status</h3>
+      <p class="detail-text mb-1rem mt-2rem">
+        Diagnostic states tracking real-time availability of the Flask pipeline linking to the TensorFlow neural runtime
+        container.
+      </p>
+      <!-- Last dispatched timestamp from the most recent inference request -->
+      <p class="detail-text diagnostic-text">
+        Last Dispatched At: <strong class="float-right">{{ metrics.last_request_at if metrics.last_request_at else 'No
+          recent runs' }}</strong>
+      </p>
+      <!-- Most recent error: highlighted red if present, green if clear -->
+      <p class="detail-text diagnostic-text">
+        Most Recent Error Log:
+        {% if metrics.last_error %}
+        <strong class="text-danger float-right-mono">{{ metrics.last_error }}</strong>
+        {% else %}
+        <strong class="text-success float-right">[OK] None recorded</strong>
+        {% endif %}
+      </p>
+    </div>
+  </div>
+</section>
+<!-- ===== End Live Analytics Charts Card ===== -->
+
+<!-- ===== Metrics Data Island ===== -->
+<!-- Server-side metrics values serialised as JSON so metrics.js can read them
+     without any Jinja2 syntax inside the external .js file. -->
+<script id="metrics-data" type="application/json">{
+  "history":              {{ metrics.history|tojson|safe }},
+  "successful_requests": {{ metrics.successful_requests }},
+  "failed_requests":     {{ metrics.failed_requests }}
+}</script>
+<!-- ===== End Metrics Data Island ===== -->
+
+<!-- ===== Chart.js Rendering Script ===== -->
+<!-- All chart logic lives in the external metrics.js file -->
+<script src="{{ url_for('static', filename='js/metrics.js') }}"></script>
+<!-- ===== End Chart.js Rendering Script ===== -->
+
+<!-- ===== Raw Engineering Logs Table ===== -->
+<!-- Tabular view of the full metrics history in reverse-chronological order -->
+<section class="card mt-2rem">
+  <h2>Raw Engineering Logs</h2>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Compute Latency</th>
+          <th>Execution Flags</th>
+          <th>Found Classes</th>
+          <th>Trace Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Reverse the history list so the most recent entry appears first -->
+        {% for item in metrics.history|reverse %}
+        <tr>
+          <td>{{ item.timestamp }}</td>
+          <td>{{ item.latency_ms }} ms</td>
+          <td>
+            <!-- Badge colour reflects individual request outcome -->
+            {% if item.success %}
+            <span class="badge-label status-badge-success">Verified Run</span>
+            {% else %}
+            <span class="badge-label status-badge-danger">System Fault</span>
+            {% endif %}
+          </td>
+          <!-- Number of objects detected in this request -->
+          <td class="font-600">{{ item.detection_count }}</td>
+          <!-- Error detail or <None> if the request completed without fault -->
+          <td class="text-secondary mono-text">{{ item.error or '<None>' }}</td>
+        </tr>
+        {% else %}
+        <!-- Fallback row when the metrics history buffer is empty -->
+        <tr>
+          <td colspan="5" class="empty-state">System standby: Processing buffer is currently empty.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<!-- ===== End Raw Engineering Logs Table ===== -->
+
+{% endblock %}

@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  tf-serving:
+    image: tensorflow/serving:latest-gpu
+    container_name: tf-serving
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./model/object_detection:/models/object_detection
+    environment:
+      - MODEL_NAME=object_detection
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    restart: unless-stopped
+
+  flask-app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.flask
+    container_name: flask-app
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./model:/model
+    environment:
+      - TF_SERVING_URL=http://tf-serving:8501/v1/models/object_detection:predict
+      - TF_MODEL_STATUS_URL=http://tf-serving:8501/v1/models/object_detection
+      - LOG_LEVEL=INFO
+      - MIN_SCORE_THRESHOLD=0.50
+    depends_on:
+      - tf-serving
+    restart: unless-stopped

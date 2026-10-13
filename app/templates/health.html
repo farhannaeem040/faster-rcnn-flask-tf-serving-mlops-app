@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{# ============================================================
+health.html — Platform Diagnostics Page
+Inherits from base.html.
+Responsibilities:
+- High-level system status badge (OK / Error)
+- Flask API Gateway node status card
+- TensorFlow Inference Core node status card
+Context variables expected from the route:
+- status : 'ok' or error string
+- tf_serving : dict from TF Serving metadata API (or None)
+- error_message: human-readable connection error string (or None)
+============================================================ #}
+
+{% block title %}NeuralVision AI - Service Health{% endblock %}
+{% block page_heading %}Platform Diagnostics{% endblock %}
+{% block page_subtitle %}Live connectivity checks between the Flask Gateway and internal inference engines.{% endblock
+%}
+
+{% block content %}
+
+<!-- ===== System Health Overview Banner ===== -->
+<!-- Top-level summary card: single pass/fail badge for the whole platform -->
+<section class="card mb-1-5rem">
+  <div class="flex-between-center">
+    <h2 class="m-0 pb-0 border-none">System Health Overview</h2>
+    {% if status == 'ok' %}
+    <!-- All services responding within tolerance — show green badge -->
+    <span class="badge-label status-badge-success status-badge-lg">
+      <span class="status-dot bg-success"></span>
+      All Systems Operational
+    </span>
+    {% else %}
+    <!-- One or more services failed — show red alert badge -->
+    <span class="badge-label status-badge-danger status-badge-lg">
+      <span class="status-dot bg-danger"></span>
+      System Error Detected
+    </span>
+    {% endif %}
+  </div>
+</section>
+<!-- ===== End System Health Overview Banner ===== -->
+
+<!-- ===== Service Node Cards Grid ===== -->
+<!-- Two-column grid: left = Flask Gateway, right = TF Serving Core -->
+<div class="grid-two">
+
+  <!-- Flask API Gateway Node -->
+  <!-- Border colour changes based on the overall 'status' variable -->
+  <div class="card health-card {% if status == 'ok' %}border-top-success{% else %}border-top-danger{% endif %}">
+    <h3 class="mb-0-25rem">Flask API Gateway</h3>
+    <p class="detail-text detail-border-bottom">Routing &amp; Pre-processing layer</p>
+
+    <div class="mt-1-5rem">
+      <!-- Component online/error state derived from the Flask process itself -->
+      <p class="mb-0-75rem">
+        <strong class="label-fixed-width">Component state:</strong>
+        {% if status == 'ok' %}
+        <span class="text-success-imp">ONLINE</span>
+        {% else %}
+        <span class="text-danger-imp">ERROR</span>
+        {% endif %}
+      </p>
+      <!-- Protocol used by the Flask WSGI server -->
+      <p class="mb-0-75rem">
+        <strong class="label-fixed-width">Protocol:</strong> <span class="mono-text">HTTP / WSGI</span>
+      </p>
+    </div>
+  </div>
+  <!-- End Flask API Gateway Node -->
+
+  <!-- TensorFlow Inference Core Node -->
+  {# Extract model version info from the TF Serving metadata response #}
+  {% set tf_state = 'UNKNOWN' %}
+  {% set tf_version = 'N/A' %}
+  {% set tf_error = 'N/A' %}
+
+  <!-- Parse the first model version entry from TF Serving if available -->
+  {% if tf_serving and tf_serving.get('model_version_status') %}
+  {% set model_info = tf_serving.get('model_version_status')[0] %}
+  {% set tf_state = model_info.get('state', 'UNKNOWN') %}
+  {% set tf_version = model_info.get('version', 'N/A') %}
+  {% set tf_error = model_info.get('status', {}).get('error_code', 'N/A') %}
+  {% endif %}
+
+  <!-- Border colour reflects TF Serving availability: green = AVAILABLE -->
+  <div
+    class="card health-card {% if tf_state == 'AVAILABLE' %}border-top-success{% else %}border-top-danger{% endif %}">
+    <h3 class="mb-0-25rem">TensorFlow Inference Core</h3>
+    <p class="detail-text detail-border-bottom">Serving: Faster R-CNN Model</p>
+
+    <div class="mt-1-5rem">
+      {% if tf_serving %}
+      <!-- TF Serving responded: display engine state, version, and error code -->
+      <p class="mb-0-75rem">
+        <strong class="label-fixed-width">Engine state:</strong>
+        {% if tf_state == 'AVAILABLE' %}
+        <span class="text-success-imp">AVAILABLE</span>
+        {% else %}
+        <span class="text-danger-imp">{{ tf_state }}</span>
+        {% endif %}
+      </p>
+      <!-- Active model version number reported by TF Serving -->
+      <p class="mb-0-75rem">
+        <strong class="label-fixed-width">Model version:</strong> <span class="mono-text">v{{ tf_version }}</span>
+      </p>
+      <!-- Internal TF error code (OK when no faults are present) -->
+      <p class="mb-0-75rem">
+        <strong class="label-fixed-width">Internal code:</strong> <span class="mono-text">{{ tf_error }}</span>
+      </p>
+      {% elif error_message %}
+      <!-- TF Serving returned an error — display the connection failure message -->
+      <p class="text-danger mb-0-75rem"><strong>Connection Failed:</strong></p>
+      <div class="error-box">
+        <span class="mono-text error-text">{{ error_message }}</span>
+      </div>
+      {% else %}
+      <!-- Fallback: TF Serving is unreachable and no specific error was captured -->
+      <p class="text-danger"><strong>Unknown engine linkage state.</strong></p>
+      {% endif %}
+    </div>
+  </div>
+  <!-- End TensorFlow Inference Core Node -->
+
+</div>
+<!-- ===== End Service Node Cards Grid ===== -->
+
+{% endblock %}

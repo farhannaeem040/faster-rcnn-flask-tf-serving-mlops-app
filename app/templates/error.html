@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{# ============================================================
+error.html — Generic Error Page
+Inherits from base.html.
+Responsibilities:
+- Displays a human-readable HTTP error code and message
+- Provides a link back to the home page for recovery
+Context variables expected from the route/error handler:
+- code : HTTP status code integer (e.g. 404, 500)
+- message: human-readable error description string
+============================================================ #}
+
+{% block title %}Error{% endblock %}
+{% block page_heading %}Something went wrong{% endblock %}
+{% block page_subtitle %}Use the information below to troubleshoot or return home.{% endblock %}
+
+{% block content %}
+
+<!-- ===== Error Detail Card ===== -->
+<section class="card">
+  <!-- HTTP error code heading (e.g. "Error 404", "Error 500") -->
+  <h2>Error {{ code }}</h2>
+  <!-- Human-readable description of what went wrong -->
+  <p>{{ message }}</p>
+  <!-- Recovery link: returns the user to the home / upload page -->
+  <a href="{{ url_for('main.index') }}" class="button">Back to Home</a>
+</section>
+<!-- ===== End Error Detail Card ===== -->
+
+{% endblock %}

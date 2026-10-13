@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{# ============================================================
+results.html — Inference Results Page
+Inherits from base.html.
+Responsibilities:
+- Side-by-side original vs annotated image display
+- Inference summary card (image name, detection count)
+- Detection table with confidence progress bars
+- Probability distribution bar chart (Chart.js)
+- "Analyse Another Image" CTA button
+Context variables expected from the route:
+- original_image : base64 or URL of the source image
+- processed_image : base64 or URL of the annotated output
+- image_name : filename string
+- detection_count : int — number of detections above threshold
+- detections : list of dicts {label, score, box}
+============================================================ #}
+
+{% block title %}NeuralVision AI - Results{% endblock %}
+{% block page_heading %}Analysis Complete{% endblock %}
+{% block page_subtitle %}Review the bounding box overlays and detection confidence scores below.{% endblock %}
+
+{% block content %}
+
+<!-- ===== Side-by-Side Image Comparison Grid ===== -->
+<!-- Two cards placed in a two-column grid for direct before/after comparison -->
+<div class="grid-two">
+  <!-- Original input image as uploaded by the user -->
+  <section class="card">
+    <h2>Original Input</h2>
+    <div class="image-container">
+      <img src="{{ original_image }}" alt="Original image" class="preview-image">
+    </div>
+  </section>
+
+  <!-- Processed output image with bounding box overlays drawn by the model -->
+  <section class="card">
+    <h2>Detection Output</h2>
+    <div class="image-container">
+      <img src="{{ processed_image }}" alt="Processed image" class="preview-image">
+    </div>
+  </section>
+</div>
+<!-- ===== End Side-by-Side Image Comparison Grid ===== -->
+
+<!-- ===== Inference Summary & Detection Table Card ===== -->
+<section class="card mt-2rem">
+  <h2>Inference Summary</h2>
+
+  <!-- High-level metadata for this inference run -->
+  <div class="mb-1-5rem">
+    <p class="detail-text">Image Name: <strong>{{ image_name }}</strong></p>
+    <p class="detail-text">Objects Detected: <strong class="text-accent-primary">{{ detection_count }}</strong> (above
+      threshold)</p>
+  </div>
+
+  <!-- ===== Detection Detail Table ===== -->
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Class Label</th>
+          <th>Confidence Score</th>
+          <!-- Bounding box coordinates in [ymin, xmin, ymax, xmax] format -->
+          <th>Bounding Box [ymin, xmin, ymax, xmax]</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if detections %}
+        {% for detection in detections %}
+        <tr>
+          <!-- COCO class label displayed as a styled badge -->
+          <td>
+            <span class="badge-label">
+              {{ detection.label }}
+            </span>
+          </td>
+          <td>
+            <div class="flex-center-gap">
+              <!-- progress bar element -->
+              <div class="confidence-bar-bg">
+                <!-- dynamic width must remain inline style -->
+                <!-- Width is set inline because it depends on a per-detection runtime value -->
+                <div class="confidence-bar-fill" style="width: {{ (detection.score * 100)|round }}%;"></div>
+              </div>
+              <!-- Numeric confidence percentage alongside the progress bar -->
+              <span>{{ (detection.score * 100)|round(2) }}%</span>
+            </div>
+          </td>
+          <!-- Raw bounding box coordinates in monospace for readability -->
+          <td class="mono-text">
+            {{ detection.box }}
+          </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <!-- Fallback: no detections met the confidence threshold -->
+        <tr>
+          <td colspan="3" class="empty-state">No objects were detected with high enough confidence.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  <!-- ===== End Detection Detail Table ===== -->
+
+  <!-- ===== Probability Distribution Chart (conditional) ===== -->
+  <!-- Only rendered when at least one detection is present -->
+  {% if detections %}
+  <div class="chart-container-panel mt-2rem">
+    <h3 class="chart-title">Probability Distribution</h3>
+    <div class="chart-box-300">
+      <!-- Canvas target for Chart.js horizontal bar chart -->
+      <canvas id="confidenceChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Detections Data Island: serialises the detections list as JSON so results.js
+       can build the confidence chart without any Jinja2 syntax inside a .js file. -->
+  <script id="results-data" type="application/json">{{ detections|tojson|safe }}</script>
+
+  <!-- Chart.js confidence chart logic lives in the external results.js file -->
+  <script src="{{ url_for('static', filename='js/results.js') }}"></script>
+  {% endif %}
+  <!-- ===== End Probability Distribution Chart ===== -->
+
+  <!-- CTA: allows the user to return to the home page and run another inference -->
+  <div class="action-center-container">
+    <a href="{{ url_for('main.index') }}" class="btn btn-auto-width">Analyze Another Image</a>
+  </div>
+</section>
+<!-- ===== End Inference Summary & Detection Table Card ===== -->
+
+{% endblock %}

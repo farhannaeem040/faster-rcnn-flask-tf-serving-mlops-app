@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Character encoding declaration -->
+  <meta charset="UTF-8">
+  <!-- Responsive viewport configuration for mobile compatibility -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Page title: overridden by child templates via the 'title' block -->
+  <title>{% block title %}Model Zoo Faster RCNN{% endblock %}</title>
+  <!-- Global stylesheet for the Model Zoo Faster RCNN design system -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- Chart.js CDN: used by metrics, results, and index pages for data visualisation -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <!-- Outer layout wrapper — constrains page content to a max-width -->
+  <div class="container">
+
+    <!-- ===== Site Header ===== -->
+    <header>
+      <!-- Brand identity block: heading and subtitle overridden by child templates -->
+      <div class="header-brand">
+        <h1>{% block page_heading %}Model Zoo Faster RCNN{% endblock %}</h1>
+        <p>{% block page_subtitle %}High-performance Enterprise Object Detection{% endblock %}</p>
+      </div>
+
+      <!-- Primary navigation links across all pages -->
+      <nav>
+        <a href="{{ url_for('main.index') }}">Home</a>
+        <a href="{{ url_for('main.gallery') }}">Gallery</a>
+        <a href="{{ url_for('main.settings') }}">Model Manager</a>
+        <a href="{{ url_for('main.view_logs') }}">Logs</a>
+        <a href="{{ url_for('main.metrics') }}">Metrics</a>
+        <a href="{{ url_for('main.health') }}">Health</a>
+      </nav>
+    </header>
+    <!-- ===== End Site Header ===== -->
+
+    <!-- ===== Main Page Content ===== -->
+    <main>
+      <!-- Flash message block: renders categorised feedback alerts (e.g. success, error) -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      {% for category, message in messages %}
+      <div class="alert {{ category }}">
+        {{ message }}
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      <!-- Child template content injected here via the 'content' block -->
+      {% block content %}{% endblock %}
+    </main>
+    <!-- ===== End Main Page Content ===== -->
+
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{# ============================================================
+index.html — Home / Inference Upload Page
+Inherits from base.html.
+Responsibilities:
+- File upload form with preview
+- Loading / progress bar feedback
+- Live system pulse sparkline (Chart.js)
+- Supported COCO object class info
+============================================================ #}
+
+{% block title %} Faster R-CNN - Upload{% endblock %}
+{% block page_heading %}Object Detection{% endblock %}
+{% block page_subtitle %}Upload an image to run inference.{% endblock %}
+
+{% block content %}
+
+<!-- ===== Inference Upload Card ===== -->
+<section class="card">
+  <h2>Start Inference</h2>
+  <!-- Upload form: posts to the predict route; onsubmit triggers loading feedback -->
+  <!-- Added onsubmit to trigger the loading bar and check validity -->
+  <form action="{{ url_for('main.predict') }}" method="post" enctype="multipart/form-data" id="upload-form">
+
+    <!-- Styled file input label acting as a drag-and-drop / browse area -->
+    <label class="upload-wrapper" for="image" id="upload-label">
+      <div class="upload-icon" id="upload-icon">⇪</div>
+      <div class="upload-text" id="upload-text">Click to Browse File</div>
+      <div class="upload-subtext" id="upload-subtext">JPG, JPEG, or PNG formats supported</div>
+
+      <!-- Image preview container: shown after file selection via JS -->
+      <img id="image-preview" class="upload-preview-image hidden" />
+
+      <!-- Hidden native file input — only accepts image formats -->
+      <input type="file" name="image" id="image" accept=".jpg,.jpeg,.png" required>
+    </label>
+
+    <!-- Displays the selected file name beneath the upload area -->
+    <p id="file-name-display" class="file-name-display"></p>
+
+    <!-- Submitting button -->
+    <button type="submit" class="btn" id="submit-btn">
+      <span id="btn-text">Run Inference</span>
+      <!-- Spinner shown during form submission -->
+      <div id="loading-spinner" class="spinner hidden"></div>
+    </button>
+
+    <!-- Loading container: revealed on submit to indicate processing is underway -->
+    <div id="loading-container" class="loading-container hidden">
+      <p class="loading-text">Processing Image via Faster R-CNN...</p>
+      <!-- Animated progress bar (CSS-driven animation) -->
+      <div class="progress-bar">
+        <div class="progress-bar-fill"></div>
+      </div>
+    </div>
+
+  </form>
+</section>
+<!-- ===== End Inference Upload Card ===== -->
+
+<!-- ===== Live System Pulse Sparkline ===== -->
+<!-- Compact latency chart giving a quick health-at-a-glance on the home page -->
+<section class="card mt-2rem">
+  <div class="pulse-header">
+    <h3 class="pulse-title">Live System Pulse</h3>
+    <a href="{{ url_for('main.metrics') }}" class="text-link view-analytics">View Full Analytics &rarr;</a>
+  </div>
+  <!-- Canvas target for Chart.js sparkline -->
+  <div class="chart-box-120">
+    <canvas id="pulseChart"></canvas>
+  </div>
+</section>
+<!-- ===== End Live System Pulse Sparkline ===== -->
+
+<!-- ===== Supported COCO Objects Info Card ===== -->
+<section class="card mt-2rem">
+  <h2>Supported Objects</h2>
+  <p class="detail-text mb-1rem">
+    This model is trained on the COCO dataset and can detect 90 different classes of objects.
+    Here are some of the most commonly detected items:
+  </p>
+  <p class="coco-footnote">
+    <em>See the full <a href="https://cocodataset.org/#explore" target="_blank" rel="noopener noreferrer"
+        class="text-link">90-class COCO dataset documentation</a> for a comprehensive list.</em>
+  </p>
+</section>
+<!-- ===== End Supported COCO Objects Info Card ===== -->
+
+<!-- Data island: Jinja2 renders the metrics history as JSON here.
+     Using type="application/json" keeps the linter happy because the
+     browser never executes this block as JavaScript. -->
+<script id="pulse-data" type="application/json">
+  {{ (metrics.history | default([])) | tojson | safe }}
+</script>
+
+<!-- ===== Page Scripts ===== -->
+<!-- All upload form and pulse sparkline logic lives in the external index.js file -->
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+<!-- ===== End Page Scripts ===== -->
+
+{% endblock %}
